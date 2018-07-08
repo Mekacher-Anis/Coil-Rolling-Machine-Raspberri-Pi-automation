@@ -20,7 +20,7 @@ using namespace QtCharts;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(new Ui::MainWindow),myFile("log.txt")
 {
     ui->setupUi(this); //setup interface
     workersDB = openDB("workers.db");   //open workers database
@@ -33,6 +33,7 @@ MainWindow::MainWindow(QWidget *parent) :
 //opens a connection to the designated database
 QSqlDatabase MainWindow::openDB(QString name){
     QString loc = QCoreApplication::applicationDirPath()+ "/" + name; //get path to sqlite databse
+    log(loc);
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE",name); //create database
     db.setDatabaseName(loc);
     if(db.open()) return db; //open it and chek if it's open
@@ -77,13 +78,22 @@ void MainWindow::on_start_clicked()
         //start timer in diffrent thread
         workerTimer.start();
         stop = false;
-        workerTimerTh = QThread::create([this]{
-            while(!this->stop){ //this check is not necessary, because the thread is going to be destroyed when it's stopped
-                QString time = QDateTime::fromTime_t(workerTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
-                ui->time->setText(time);
-                QThread::msleep(1000); //to ensure it doesn't consume to much cpu power
-            }
-        });
+
+
+
+        //CHANGED BECAUSE IT DOESN'T WORK ON RASPBERRY
+//        workerTimerTh = QThread::create([this]{
+//            while(!this->stop){ //this check is not necessary, because the thread is going to be destroyed when it's stopped
+//                QString time = QDateTime::fromTime_t(workerTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
+//                ui->time->setText(time);
+//                QThread::msleep(1000); //to ensure it doesn't consume to much cpu power
+//            }
+//        });
+
+
+
+
+        workerTimerTh = new TimerThread(this,&workerTimer);
         workerTimerTh->start();
 
     }
@@ -173,13 +183,18 @@ void MainWindow::on_start_2_clicked()
 
         //start timer in diffrent thread
         techTimer.start();
-        techTimerTh = QThread::create([this]{
-            while(this->stop){
-                QString time = QDateTime::fromTime_t(techTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
-                ui->time_2->setText(time);
-                QThread::msleep(1000);
-            }
-        });
+
+        //CHANGED BECAUSE IT DOESN'T WORK ON RASPBERRY
+//        techTimerTh = QThread::create([this]{
+//            while(this->stop){
+//                QString time = QDateTime::fromTime_t(techTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
+//                ui->time_2->setText(time);
+//                QThread::msleep(1000);
+//            }
+//        });
+
+
+        techTimerTh = new TimerThread(this,&techTimer);
         techTimerTh->start();
     }
 }
@@ -323,7 +338,7 @@ void MainWindow::on_searchBut_clicked()
     QChartView *chartView = new QChartView(chart); //create the chart widget
 
     QVBoxLayout* layout = new QVBoxLayout;
-    if(ui->chartBox->layout() == 0) //if it doesn't have a layout add one
+    if(ui->chartBox->layout() == nullptr) //if it doesn't have a layout add one
         ui->chartBox->setLayout(layout);
 
     //remove all objects in the chartBox to make room for the new graph
@@ -352,8 +367,8 @@ void MainWindow::on_tabs_currentChanged(int index)
             prodTabMod->setTable("products");
             prodTabMod->setEditStrategy(QSqlTableModel::OnManualSubmit);
             prodTabMod->select();
-//            model->setHeaderData(0, Qt::Horizontal, tr("Name"));
-//            model->setHeaderData(1, Qt::Horizontal, tr("Salary"));
+            //            model->setHeaderData(0, Qt::Horizontal, tr("Name"));
+            //            model->setHeaderData(1, Qt::Horizontal, tr("Salary"));
             ui->dbEditorTable->setModel(prodTabMod);
 
         }
@@ -401,13 +416,26 @@ void MainWindow::on_itemNat_currentIndexChanged(int index)
     }
 }
 
+void MainWindow::log(QString txt)
+{
+    myFile.open(QFile::WriteOnly);
+    QTextStream myLog(&myFile);
+    myLog << txt << endl;
+    myLog.flush();
+}
+
+bool MainWindow::getStop() const
+{
+    return stop;
+}
+
 //called when the add worker button is clicked
 void MainWindow::on_addWorker_clicked()
 {
     //check if the inputted data is valid
     if(!isItNumber(ui->Id_3->text())
-       || ui->name_3->text().isEmpty()
-       || ui->charge_3->text().isEmpty()){
+            || ui->name_3->text().isEmpty()
+            || ui->charge_3->text().isEmpty()){
         QMessageBox::critical(this,"ERROR","Invalid Data");
         return;
     }
@@ -416,13 +444,13 @@ void MainWindow::on_addWorker_clicked()
     bool test = true;
     QSqlQuery query = QSqlQuery(workersDB);
     if(ui->itemNat->currentIndex() == 0){
-    query.exec("SELECT * FROM workers WHERE ID="+ui->Id_3->text()+" ;");
-    if(query.next())
-        test = false;
+        query.exec("SELECT * FROM workers WHERE ID="+ui->Id_3->text()+" ;");
+        if(query.next())
+            test = false;
     }else{
-    query.exec("SELECT * FROM technicians WHERE ID="+ui->Id_3->text()+" ;");
-    if(query.next())
-        test = false;
+        query.exec("SELECT * FROM technicians WHERE ID="+ui->Id_3->text()+" ;");
+        if(query.next())
+            test = false;
     }
     if(!test){
         QMessageBox::critical(this,"ERROR","ID Already Exists");
@@ -480,3 +508,21 @@ MainWindow::~MainWindow()
     delete workerTimerTh;
     delete techTimerTh;
 }
+
+
+
+
+
+
+
+TimerThread::TimerThread(MainWindow* windowController, QElapsedTimer* timer):
+    QThread(windowController), main(windowController),timer(timer){}
+
+void TimerThread::run() {
+    while(!main->stop){ //this check is not necessary, because the thread is going to be destroyed when it's stopped
+        QString time = QDateTime::fromTime_t(timer->elapsed()/1000).toUTC().toString("hh:mm:ss");
+        main->ui->time->setText(time);
+        QThread::msleep(1000); //to ensure it doesn't consume to much cpu power
+    }
+}
+

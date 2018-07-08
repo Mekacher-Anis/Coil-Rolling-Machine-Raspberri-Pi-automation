@@ -7,20 +7,27 @@
 #include <QThread>
 #include <QDate>
 #include <QSqlTableModel>
+#include <QFile>
 
 namespace Ui {
 class MainWindow;
 }
 
+class TimerThread;
+
 class MainWindow : public QMainWindow
 {
+    friend class TimerThread;
+
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
     bool isItNumber(QString);
+
+    bool getStop() const;
 
 private slots:
     void on_start_clicked();
@@ -49,6 +56,8 @@ private slots:
 
     void on_itemNat_currentIndexChanged(int index);
 
+    void log(QString txt);
+
 private:
     Ui::MainWindow *ui;
     bool stop = false;
@@ -58,11 +67,26 @@ private:
     QSqlDatabase workersDB,GIDB;
     QSqlTableModel *prodTabMod;
     QElapsedTimer workerTimer;
-    QThread *workerTimerTh , *techTimerTh;
+    //QThread *workerTimerTh , *techTimerTh; //CHANGED BECAUSE IT DOESN'T WORK ON RASPBERRY
+    TimerThread *workerTimerTh , *techTimerTh;
     QElapsedTimer techTimer;
     const QString dateFormat = "yyyy/MM/dd";
     const QString ManagerPWD = "banana95";
     QString currentDate = QDate::currentDate().toString(dateFormat);
+    QFile myFile;
+};
+
+class TimerThread : public QThread{
+
+private :
+    Q_OBJECT
+    MainWindow* main;
+    QElapsedTimer* timer;
+public:
+
+    TimerThread(MainWindow* windowController, QElapsedTimer* timer);
+
+    void run() override;
 };
 
 #endif // MAINWINDOW_H
