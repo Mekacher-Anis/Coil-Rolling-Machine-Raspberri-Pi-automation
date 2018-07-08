@@ -58,6 +58,8 @@ private slots:
 
     void log(QString txt);
 
+    void on_diagType_currentIndexChanged(int index);
+
 private:
     Ui::MainWindow *ui;
     bool stop = false;

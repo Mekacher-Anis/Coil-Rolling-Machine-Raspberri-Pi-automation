@@ -23,6 +23,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow),myFile(new QFile("log.txt"))
 {
     ui->setupUi(this); //setup interface
+    setFixedSize(QSize(1000,600));
+    setWindowTitle("Gruner Machine Control");
     workersDB = openDB("workers.db");   //open workers database
     GIDB = openDB("general_information.sqlite"); //open general information database
     prodTabMod = new QSqlTableModel(this, GIDB); //defined here so it doesn't get defined every time the dbEditorTab is opened
@@ -83,13 +85,13 @@ void MainWindow::on_start_clicked()
 
 
         //CHANGED BECAUSE IT DOESN'T WORK ON RASPBERRY
-//        workerTimerTh = QThread::create([this]{
-//            while(!this->stop){ //this check is not necessary, because the thread is going to be destroyed when it's stopped
-//                QString time = QDateTime::fromTime_t(workerTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
-//                ui->time->setText(time);
-//                QThread::msleep(1000); //to ensure it doesn't consume to much cpu power
-//            }
-//        });
+        //        workerTimerTh = QThread::create([this]{
+        //            while(!this->stop){ //this check is not necessary, because the thread is going to be destroyed when it's stopped
+        //                QString time = QDateTime::fromTime_t(workerTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
+        //                ui->time->setText(time);
+        //                QThread::msleep(1000); //to ensure it doesn't consume to much cpu power
+        //            }
+        //        });
 
 
 
@@ -186,13 +188,13 @@ void MainWindow::on_start_2_clicked()
         techTimer.start();
 
         //CHANGED BECAUSE IT DOESN'T WORK ON RASPBERRY
-//        techTimerTh = QThread::create([this]{
-//            while(this->stop){
-//                QString time = QDateTime::fromTime_t(techTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
-//                ui->time_2->setText(time);
-//                QThread::msleep(1000);
-//            }
-//        });
+        //        techTimerTh = QThread::create([this]{
+        //            while(this->stop){
+        //                QString time = QDateTime::fromTime_t(techTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
+        //                ui->time_2->setText(time);
+        //                QThread::msleep(1000);
+        //            }
+        //        });
 
 
         techTimerTh = new TimerThread(this,&techTimer);
@@ -354,15 +356,30 @@ void MainWindow::on_searchBut_clicked()
     chartView->setRenderHint(QPainter::Antialiasing); //for better line quality
 }
 
+
+//called when the index is changed
+void MainWindow::on_diagType_currentIndexChanged(int index)
+{
+    on_searchBut_clicked();
+}
+
 //called when the tabs are changed
 void MainWindow::on_tabs_currentChanged(int index)
 {
     //if one of the administrator tabs are selected ask for password
     if(index == 2 || index == 3){
         bool ok;
-        QString pwd = QInputDialog::getText(this, "Manager","Enter password ", QLineEdit::Password,"banana95", &ok);
-        if(!ok || pwd != ManagerPWD)
-            ui->tabs->setCurrentIndex(0);
+        QString msg = "Entrer mot de passe";
+        QString pwd;
+        do{
+            pwd = QInputDialog::getText(this, "Manager",msg, QLineEdit::Password,"banana95", &ok);
+            if(!ok){
+                ui->tabs->setCurrentIndex(1);
+                return;
+            }else
+                msg = "Mot de Passe Incorrecte";
+        }while (pwd != ManagerPWD);
+
 
         if(index == 3){
             prodTabMod->setTable("products");
@@ -525,4 +542,3 @@ void TimerThread::run() {
         QThread::msleep(1000); //to ensure it doesn't consume to much cpu power
     }
 }
-
