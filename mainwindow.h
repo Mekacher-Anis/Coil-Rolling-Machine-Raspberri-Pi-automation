@@ -73,7 +73,7 @@ private:
     const QString dateFormat = "yyyy/MM/dd";
     const QString ManagerPWD = "banana95";
     QString currentDate = QDate::currentDate().toString(dateFormat);
-    QFile myFile;
+    QFile* myFile;
 };
 
 class TimerThread : public QThread{

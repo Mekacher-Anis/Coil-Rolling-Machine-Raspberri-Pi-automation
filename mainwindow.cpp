@@ -20,12 +20,13 @@ using namespace QtCharts;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow),myFile("log.txt")
+    ui(new Ui::MainWindow),myFile(new QFile("log.txt"))
 {
     ui->setupUi(this); //setup interface
     workersDB = openDB("workers.db");   //open workers database
     GIDB = openDB("general_information.sqlite"); //open general information database
     prodTabMod = new QSqlTableModel(this, GIDB); //defined here so it doesn't get defined every time the dbEditorTab is opened
+    myFile->open(QFile::WriteOnly); // open log file
 }
 
 
@@ -418,10 +419,8 @@ void MainWindow::on_itemNat_currentIndexChanged(int index)
 
 void MainWindow::log(QString txt)
 {
-    myFile.open(QFile::WriteOnly);
-    QTextStream myLog(&myFile);
+    QTextStream myLog(myFile);
     myLog << txt << endl;
-    myLog.flush();
 }
 
 bool MainWindow::getStop() const
@@ -504,6 +503,7 @@ MainWindow::~MainWindow()
 {
     workersDB.close();
     GIDB.close();
+    myFile->close();
     delete ui;
     delete workerTimerTh;
     delete techTimerTh;
