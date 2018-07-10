@@ -13,7 +13,6 @@
 #include <QValueAxis>
 #include <QInputDialog>
 #include <QDir>
-#include <QProcess>
 
 using namespace QtCharts;
 
@@ -96,12 +95,15 @@ void MainWindow::on_start_clicked()
             }
         });
 
-
-
-
         //        workerTimerTh = new TimerThread(this,&workerTimer);
         workerTimerTh->start();
 
+
+        //start listner for waste
+        wasteTh = QThread::create([this]{
+
+        });
+        wasteTh->start();
     }
 }
 
@@ -370,11 +372,22 @@ void MainWindow::setPin(bool state)
 {
     QString bash = "/bin/bash";
     QStringList arguments;
-    arguments << "-c";
+    arguments << "-c" << "gpio mode 29 out";
     QString cmd = QString("sudo gpio write 40 ")+ ((state)?"1":"0");
     arguments << cmd;
     QProcess* gpio = new QProcess(this);
     gpio->start(bash,arguments);
+}
+
+bool MainWindow::getPinState()
+{
+    QString bash = "/usr/bin/gpio";
+    QStringList arguments;
+    arguments << "read" << "29";
+    gpio = new QProcess(this);
+    gpio->start(bash,arguments);
+    QByteArray res = gpio->readAll();
+    qInfo() << res.at(0);
 }
 
 void MainWindow::machIsDone()
