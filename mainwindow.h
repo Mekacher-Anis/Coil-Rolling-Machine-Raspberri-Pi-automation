@@ -8,6 +8,7 @@
 #include <QDate>
 #include <QSqlTableModel>
 #include <QFile>
+#include <QTimer>
 
 namespace Ui {
 class MainWindow;
@@ -60,6 +61,11 @@ private slots:
 
     void on_diagType_currentIndexChanged(int index);
 
+    void setPin(bool state);
+
+public slots:
+    void machIsDone();
+
 private:
     Ui::MainWindow *ui;
     bool stop = false;
@@ -69,13 +75,14 @@ private:
     QSqlDatabase workersDB,GIDB;
     QSqlTableModel *prodTabMod;
     QElapsedTimer workerTimer;
-    //QThread *workerTimerTh , *techTimerTh; //CHANGED BECAUSE IT DOESN'T WORK ON RASPBERRY
-    TimerThread *workerTimerTh , *techTimerTh;
+    QThread *workerTimerTh , *techTimerTh; //CHANGED BECAUSE IT DOESN'T WORK ON RASPBERRY
+    //TimerThread *workerTimerTh , *techTimerTh;
     QElapsedTimer techTimer;
     const QString dateFormat = "yyyy/MM/dd";
     const QString ManagerPWD = "banana95";
     QString currentDate = QDate::currentDate().toString(dateFormat);
     QFile* myFile;
+    QTimer machTimer; //used to count the time the machine has run
 };
 
 class TimerThread : public QThread{

@@ -13,6 +13,7 @@
 #include <QValueAxis>
 #include <QInputDialog>
 #include <QDir>
+#include <QProcess>
 
 using namespace QtCharts;
 
@@ -20,7 +21,7 @@ using namespace QtCharts;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow),myFile(new QFile("log.txt"))
+    ui(new Ui::MainWindow),myFile(new QFile("log.txt")),machTimer(this)
 {
     ui->setupUi(this); //setup interface
     setFixedSize(QSize(1000,600));
@@ -29,6 +30,8 @@ MainWindow::MainWindow(QWidget *parent) :
     GIDB = openDB("general_information.sqlite"); //open general information database
     prodTabMod = new QSqlTableModel(this, GIDB); //defined here so it doesn't get defined every time the dbEditorTab is opened
     myFile->open(QFile::WriteOnly); // open log file
+
+    QObject::connect(&machTimer,SIGNAL(timeout()),this,SLOT(machIsDone()));
 }
 
 
@@ -85,18 +88,18 @@ void MainWindow::on_start_clicked()
 
 
         //CHANGED BECAUSE IT DOESN'T WORK ON RASPBERRY
-        //        workerTimerTh = QThread::create([this]{
-        //            while(!this->stop){ //this check is not necessary, because the thread is going to be destroyed when it's stopped
-        //                QString time = QDateTime::fromTime_t(workerTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
-        //                ui->time->setText(time);
-        //                QThread::msleep(1000); //to ensure it doesn't consume to much cpu power
-        //            }
-        //        });
+        workerTimerTh = QThread::create([this]{
+            while(!this->stop){ //this check is not necessary, because the thread is going to be destroyed when it's stopped
+                QString time = QDateTime::fromTime_t(workerTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
+                ui->time->setText(time);
+                QThread::msleep(1000); //to ensure it doesn't consume to much cpu power
+            }
+        });
 
 
 
 
-        workerTimerTh = new TimerThread(this,&workerTimer);
+        //        workerTimerTh = new TimerThread(this,&workerTimer);
         workerTimerTh->start();
 
     }
@@ -188,16 +191,16 @@ void MainWindow::on_start_2_clicked()
         techTimer.start();
 
         //CHANGED BECAUSE IT DOESN'T WORK ON RASPBERRY
-        //        techTimerTh = QThread::create([this]{
-        //            while(this->stop){
-        //                QString time = QDateTime::fromTime_t(techTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
-        //                ui->time_2->setText(time);
-        //                QThread::msleep(1000);
-        //            }
-        //        });
+        techTimerTh = QThread::create([this]{
+            while(this->stop){
+                QString time = QDateTime::fromTime_t(techTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
+                ui->time_2->setText(time);
+                QThread::msleep(1000);
+            }
+        });
 
 
-        techTimerTh = new TimerThread(this,&techTimer);
+        //        techTimerTh = new TimerThread(this,&techTimer);
         techTimerTh->start();
     }
 }
@@ -363,6 +366,33 @@ void MainWindow::on_diagType_currentIndexChanged(int index)
     on_searchBut_clicked();
 }
 
+void MainWindow::setPin(bool state)
+{
+    QString bash = "/bin/bash";
+    QStringList arguments;
+    arguments << "-c";
+    QString cmd = QString("sudo gpio write 40 ")+ ((state)?"1":"0");
+    arguments << cmd;
+    QProcess* gpio = new QProcess(this);
+    gpio->start(bash,arguments);
+}
+
+void MainWindow::machIsDone()
+{
+    machStopped = false;
+    ui->startMachBut->setEnabled(true);
+    ui->stateLab->setText("Arretee");
+
+    //update nbr of pieces
+    int count = 0;
+    for(auto ax : ui->axis->children()){
+        if((ax->objectName() != "startMachBut") && ((QCheckBox*)ax)->isChecked())
+            count++;
+    }
+    nbOfPieces += count; //add the new pieces
+    ui->nbPie->setText(QString::number(nbOfPieces)); //set the new label
+}
+
 //called when the tabs are changed
 void MainWindow::on_tabs_currentChanged(int index)
 {
@@ -396,24 +426,32 @@ void MainWindow::on_tabs_currentChanged(int index)
 //called when the start the machine button is clicked
 void MainWindow::on_startMachBut_clicked()
 {
-    if(machStopped){
-        machStopped = false;
-        ui->startMachBut->setText("Arrêter");
-        ui->stateLab->setText("En marche");
-    }else{
-        //update state and labels
-        machStopped = true;
-        ui->startMachBut->setText("Démarrer");
-        ui->stateLab->setText("Arrêtée");
+    //Checks whether the ID is a valid number or not
+    bool test = true;
+    test = isItNumber(ui->article->text());
 
-        //update nbr of pieces
-        int count = 0;
-        for(auto ax : ui->axis->children()){
-            if((ax->objectName() != "startMachBut") && ((QCheckBox*)ax)->isChecked())
-                count++;
-        }
-        nbOfPieces += count; //add the new pieces
-        ui->nbPie->setText(QString::number(nbOfPieces)); //set the new label
+    //Checks if the employee is part of the database
+    QSqlQuery query(GIDB);
+    QString queryText = "SELECT * FROM 'products' WHERE `Artikel`='";
+    queryText += ui->article->text()+"';";
+    query.exec(queryText);
+    if(!query.next()) //test if there are any results (worker is part of the database)
+        test = false;
+
+    //take actions accordingly
+    if(!test)
+        QMessageBox::critical(this,"ERROR","Article Invalide");
+    else{
+        setPin(true);
+        thread()->msleep(500);
+        setPin(false);
+
+        machStopped = false;
+        ui->startMachBut->setEnabled(false);
+        ui->stateLab->setText("En marche");
+
+        machTimer.setInterval(8000);
+        machTimer.start();
     }
 }
 
