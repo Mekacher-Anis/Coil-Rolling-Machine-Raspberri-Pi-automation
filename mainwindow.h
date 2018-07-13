@@ -63,6 +63,7 @@ private slots:
     void on_diagType_currentIndexChanged(int index);
 
     void setPin(bool state);
+
     bool getPinState();
 
 public slots:
@@ -85,7 +86,7 @@ private:
     QString currentDate = QDate::currentDate().toString(dateFormat);
     QFile* myFile;
     QTimer machTimer; //used to count the time the machine has run
-    QProcess* gpio;
+    //QProcess* gpio;
 };
 
 class TimerThread : public QThread{

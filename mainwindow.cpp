@@ -126,6 +126,13 @@ void MainWindow::on_save_clicked()
         workerTimerTh = nullptr;
     }
 
+    //delete the waste updater thread
+    if(wasteTh != nullptr){
+        wasteTh->terminate();
+        delete wasteTh;
+        wasteTh = nullptr;
+    }
+
     //update database
     QSqlQuery query(workersDB);
 
@@ -158,7 +165,12 @@ void MainWindow::on_save_clicked()
                    +QString::number(nbOfPieces)+","
                    +QString::number(waste)+");");
 
-        nbOfPieces = waste = 0; //reset the numbers
+
+        //reset the numbers
+        nbOfPieces = waste = 0;
+        //reset labels
+        ui->nbPie->setText("0");
+        ui->waste->setText("0");
     }
 }
 
@@ -381,13 +393,28 @@ void MainWindow::setPin(bool state)
 
 bool MainWindow::getPinState()
 {
-    QString bash = "/usr/bin/gpio";
+    //    QString bash = "/bin/bash";
+    //    QStringList arguments;
+    //    arguments << "-c" << "gpio read 29";
+
+    //    //if it isn't connected craete new isntance
+    //    if(gpio == nullptr){
+    //        gpio = new QProcess(this);
+    //        gpio->start(bash,arguments);
+    //        QByteArray res = gpio->readAll();
+    //        qInfo() << res.at(0);
+    //    }else{
+    //        gpio->write("read");
+    //    }
+
+    QString gpioLoc = "/bin/bash";
     QStringList arguments;
     arguments << "read" << "29";
-    gpio = new QProcess(this);
-    gpio->start(bash,arguments);
+    QProcess* gpio = new QProcess(this);
+    gpio->start(gpioLoc,arguments);
     QByteArray res = gpio->readAll();
     qInfo() << res.at(0);
+
 }
 
 void MainWindow::machIsDone()
