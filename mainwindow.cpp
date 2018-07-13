@@ -101,7 +101,9 @@ void MainWindow::on_start_clicked()
 
         //start listner for waste
         wasteTh = QThread::create([this]{
-
+            while(!stop){
+                getPinState();
+            }
         });
         wasteTh->start();
     }

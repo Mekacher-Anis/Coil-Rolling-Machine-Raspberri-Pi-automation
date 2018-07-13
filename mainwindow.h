@@ -31,6 +31,8 @@ public:
 
     bool getStop() const;
 
+    bool getPinState();
+
 private slots:
     void on_start_clicked();
 
@@ -63,8 +65,6 @@ private slots:
     void on_diagType_currentIndexChanged(int index);
 
     void setPin(bool state);
-
-    bool getPinState();
 
 public slots:
     void machIsDone();
