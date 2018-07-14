@@ -28,7 +28,9 @@ MainWindow::MainWindow(QWidget *parent) :
     workersDB = openDB("workers.db");   //open workers database
     GIDB = openDB("general_information.sqlite"); //open general information database
     prodTabMod = new QSqlTableModel(this, GIDB); //defined here so it doesn't get defined every time the dbEditorTab is opened
-
+    wiringPiSetup();
+    pinMode(RELAY,OUTPUT);
+    pinMode(WASTE,INPUT);
     QObject::connect(&machTimer,SIGNAL(timeout()),this,SLOT(machIsDone()));
 }
 
@@ -100,7 +102,10 @@ void MainWindow::on_start_clicked()
         //start listner for waste
         wasteTh = QThread::create([this]{
             while(!stop){
-                getPinState();
+                if(digitalRead(WASTE) == 1){ //if the input pin is high add a waste
+                    waste++;
+                    ui->waste->setText(QString::number(waste));
+                }
             }
         });
         wasteTh->start();
@@ -380,53 +385,6 @@ void MainWindow::on_diagType_currentIndexChanged(int index)
     on_searchBut_clicked();
 }
 
-void MainWindow::setPin(bool state)
-{
-    QString bash = "/bin/bash";
-    QStringList arguments;
-    arguments << "-c" << "gpio mode 29 out";
-    QString cmd = QString("sudo gpio write 40 ")+ ((state)?"1":"0");
-    arguments << cmd;
-    QProcess* gpio = new QProcess(this);
-    gpio->start(bash,arguments);
-
-    //wait for it to finish than exit
-    while(gpio->state() != QProcess::NotRunning);
-    delete gpio;
-}
-
-bool MainWindow::getPinState()
-{
-    //    QString bash = "/bin/bash";
-    //    QStringList arguments;
-    //    arguments << "-c" << "gpio read 29";
-
-    //    //if it isn't connected craete new isntance
-    //    if(gpio == nullptr){
-    //        gpio = new QProcess(this);
-    //        gpio->start(bash,arguments);
-    //        QByteArray res = gpio->readAll();
-    //        qInfo() << res.at(0);
-    //    }else{
-    //        gpio->write("read");
-    //    }
-
-    QThread::create([this]{
-        QString gpioLoc = "/bin/bash";
-        QStringList arguments;
-        arguments << "read" << "29";
-        QProcess* gpio = new QProcess();
-        gpio->start(gpioLoc,arguments);
-        //wait for it to finish than exit
-        while(gpio->state() != QProcess::NotRunning);
-        QByteArray res = gpio->readAll();
-        qInfo() << res.at(0);
-        delete gpio;
-    })->start();
-
-
-}
-
 void MainWindow::machIsDone()
 {
     machStopped = false;
@@ -492,14 +450,17 @@ void MainWindow::on_startMachBut_clicked()
     if(!test)
         QMessageBox::critical(this,"ERROR","Article Invalide");
     else{
-        setPin(true);
-        thread()->msleep(500);
-        setPin(false);
+        //open and close RELAY to simulate button pushed
+        digitalWrite(RELAY,1);
+        delay(500);
+        digitalWrite(RELAY,0);
 
+        //update UI
         machStopped = false;
         ui->startMachBut->setEnabled(false);
         ui->stateLab->setText("En marche");
 
+        //created as place holder for the machine working time
         machTimer.setInterval(8000);
         machTimer.start();
     }

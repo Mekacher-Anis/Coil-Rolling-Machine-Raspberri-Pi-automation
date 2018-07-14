@@ -9,7 +9,10 @@
 #include <QSqlTableModel>
 #include <QFile>
 #include <QTimer>
-#include <QProcess>
+#include <wiringPi.h>
+
+#define RELAY 29
+#define WASTE 28
 
 namespace Ui {
 class MainWindow;
@@ -30,8 +33,6 @@ public:
     bool isItNumber(QString);
 
     bool getStop() const;
-
-    bool getPinState();
 
 private slots:
     void on_start_clicked();
@@ -64,8 +65,6 @@ private slots:
 
     void on_diagType_currentIndexChanged(int index);
 
-    void setPin(bool state);
-
 public slots:
     void machIsDone();
 
@@ -86,7 +85,6 @@ private:
     QString currentDate = QDate::currentDate().toString(dateFormat);
     QFile* myFile;
     QTimer machTimer; //used to count the time the machine has run
-    //QProcess* gpio;
 };
 
 class TimerThread : public QThread{
