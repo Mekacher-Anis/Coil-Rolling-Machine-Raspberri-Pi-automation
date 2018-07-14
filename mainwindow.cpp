@@ -106,6 +106,7 @@ void MainWindow::on_start_clicked()
                     waste++;
                     ui->waste->setText(QString::number(waste));
                 }
+                delay(100);
             }
         });
         wasteTh->start();
