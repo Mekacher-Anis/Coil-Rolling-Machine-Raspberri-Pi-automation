@@ -20,7 +20,7 @@ using namespace QtCharts;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow),myFile(new QFile("log.txt")),machTimer(this)
+    ui(new Ui::MainWindow),machTimer(this)
 {
     ui->setupUi(this); //setup interface
     setFixedSize(QSize(1000,600));
@@ -28,7 +28,6 @@ MainWindow::MainWindow(QWidget *parent) :
     workersDB = openDB("workers.db");   //open workers database
     GIDB = openDB("general_information.sqlite"); //open general information database
     prodTabMod = new QSqlTableModel(this, GIDB); //defined here so it doesn't get defined every time the dbEditorTab is opened
-    myFile->open(QFile::WriteOnly); // open log file
 
     QObject::connect(&machTimer,SIGNAL(timeout()),this,SLOT(machIsDone()));
 }
@@ -38,7 +37,6 @@ MainWindow::MainWindow(QWidget *parent) :
 //opens a connection to the designated database
 QSqlDatabase MainWindow::openDB(QString name){
     QString loc = QCoreApplication::applicationDirPath()+ "/" + name; //get path to sqlite databse
-    log(loc);
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE",name); //create database
     db.setDatabaseName(loc);
     if(db.open()) return db; //open it and chek if it's open
@@ -391,6 +389,10 @@ void MainWindow::setPin(bool state)
     arguments << cmd;
     QProcess* gpio = new QProcess(this);
     gpio->start(bash,arguments);
+
+    //wait for it to finish than exit
+    while(gpio->state() != QProcess::NotRunning);
+    delete gpio;
 }
 
 bool MainWindow::getPinState()
@@ -409,13 +411,19 @@ bool MainWindow::getPinState()
     //        gpio->write("read");
     //    }
 
-    QString gpioLoc = "/bin/bash";
-    QStringList arguments;
-    arguments << "read" << "29";
-    QProcess* gpio = new QProcess(this);
-    gpio->start(gpioLoc,arguments);
-    QByteArray res = gpio->readAll();
-    qInfo() << res.at(0);
+    QThread::create([this]{
+        QString gpioLoc = "/bin/bash";
+        QStringList arguments;
+        arguments << "read" << "29";
+        QProcess* gpio = new QProcess();
+        gpio->start(gpioLoc,arguments);
+        //wait for it to finish than exit
+        while(gpio->state() != QProcess::NotRunning);
+        QByteArray res = gpio->readAll();
+        qInfo() << res.at(0);
+        delete gpio;
+    })->start();
+
 
 }
 
