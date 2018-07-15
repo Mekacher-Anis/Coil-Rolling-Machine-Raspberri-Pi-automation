@@ -31,6 +31,7 @@ MainWindow::MainWindow(QWidget *parent) :
     wiringPiSetup();
     pinMode(RELAY,OUTPUT);
     pinMode(WASTE,INPUT);
+    machTimer.setSingleShot(true);
     QObject::connect(&machTimer,SIGNAL(timeout()),this,SLOT(machIsDone()));
 }
 
@@ -86,11 +87,12 @@ void MainWindow::on_start_clicked()
 
 
         workerTimerTh = QThread::create([this]{
-            while(!this->stop){ //this check is not necessary, because the thread is going to be destroyed when it's stopped
+            while(!stop){ //this check is not necessary, because the thread is going to be destroyed when it's stopped
                 QString time = QDateTime::fromTime_t(workerTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
                 ui->time->setText(time);
                 QThread::msleep(1000); //to ensure it doesn't consume to much cpu power
             }
+            qInfo("stopped !!");
         });
         workerTimerTh->start();
 
@@ -102,8 +104,9 @@ void MainWindow::on_start_clicked()
                     waste++;
                     ui->waste->setText(QString::number(waste));
                 }
-                delay(100);
+                delay(150);
             }
+            qInfo("stopped !!");
         });
         wasteTh->start();
     }
@@ -112,28 +115,34 @@ void MainWindow::on_start_clicked()
 //called when the worker's save button is clicked
 void MainWindow::on_save_clicked()
 {
+    stop = true; //stop the workers update/waste threads
     //enable start button and disable save button
     ui->save->setEnabled(false);
     ui->start->setEnabled(true);
     ui->startMachBut->setEnabled(false);
 
-    stop = true; //stop the workers update thread
     qint64 time = (workerTimer.elapsed()/60000)+1; //get elapsed time (at least one min)
     workerTimer.invalidate(); //stop timer
 
     //delete the view updater thread
     if(workerTimerTh != nullptr){
+        while(!workerTimerTh->isFinished());
         workerTimerTh->terminate();
         delete workerTimerTh;
         workerTimerTh = nullptr;
     }
 
+    qInfo("ran !!");
     //delete the waste updater thread
     if(wasteTh != nullptr){
+        while(!wasteTh->isFinished());
         wasteTh->terminate();
         delete wasteTh;
         wasteTh = nullptr;
     }
+
+    qInfo("ran  again!!");
+
 
     //update database
     QSqlQuery query(workersDB);
@@ -155,6 +164,9 @@ void MainWindow::on_save_clicked()
                    +" AND Date= '"+currentDate+"';");
 
         nbOfPieces = waste = 0; //reset the numbers
+        //reset labels
+        ui->nbPie->setText("0");
+        ui->waste->setText("0");
 
     }else{ //or just add another entry
 
@@ -167,7 +179,7 @@ void MainWindow::on_save_clicked()
                    +QString::number(nbOfPieces)+","
                    +QString::number(waste)+");");
 
-
+        qInfo("ran !!");
         //reset the numbers
         nbOfPieces = waste = 0;
         //reset labels
@@ -384,7 +396,7 @@ void MainWindow::on_diagType_currentIndexChanged(int index)
 
 void MainWindow::machIsDone()
 {
-    machStopped = false;
+    machStopped = true;
     ui->startMachBut->setEnabled(true);
     ui->stateLab->setText("Arretee");
 
