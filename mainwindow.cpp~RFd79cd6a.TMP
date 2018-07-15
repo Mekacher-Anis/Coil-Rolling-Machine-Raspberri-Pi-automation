@@ -85,6 +85,8 @@ void MainWindow::on_start_clicked()
         stop = false;
 
 
+
+        //CHANGED BECAUSE IT DOESN'T WORK ON RASPBERRY
         workerTimerTh = QThread::create([this]{
             while(!this->stop){ //this check is not necessary, because the thread is going to be destroyed when it's stopped
                 QString time = QDateTime::fromTime_t(workerTimer.elapsed()/1000).toUTC().toString("hh:mm:ss");
@@ -92,6 +94,8 @@ void MainWindow::on_start_clicked()
                 QThread::msleep(1000); //to ensure it doesn't consume to much cpu power
             }
         });
+
+        //        workerTimerTh = new TimerThread(this,&workerTimer);
         workerTimerTh->start();
 
 
@@ -578,13 +582,13 @@ MainWindow::~MainWindow()
 
 
 
-//TimerThread::TimerThread(MainWindow* windowController, QElapsedTimer* timer):
-//    QThread(windowController), main(windowController),timer(timer){}
+TimerThread::TimerThread(MainWindow* windowController, QElapsedTimer* timer):
+    QThread(windowController), main(windowController),timer(timer){}
 
-//void TimerThread::run() {
-//    while(!main->stop){ //this check is not necessary, because the thread is going to be destroyed when it's stopped
-//        QString time = QDateTime::fromTime_t(timer->elapsed()/1000).toUTC().toString("hh:mm:ss");
-//        main->ui->time->setText(time);
-//        QThread::msleep(1000); //to ensure it doesn't consume to much cpu power
-//    }
-//}
+void TimerThread::run() {
+    while(!main->stop){ //this check is not necessary, because the thread is going to be destroyed when it's stopped
+        QString time = QDateTime::fromTime_t(timer->elapsed()/1000).toUTC().toString("hh:mm:ss");
+        main->ui->time->setText(time);
+        QThread::msleep(1000); //to ensure it doesn't consume to much cpu power
+    }
+}

@@ -87,17 +87,17 @@ private:
     QTimer machTimer; //used to count the time the machine has run
 };
 
-class TimerThread : public QThread{
+//class TimerThread : public QThread{
 
-private :
-    Q_OBJECT
-    MainWindow* main;
-    QElapsedTimer* timer;
-public:
+//private :
+//    Q_OBJECT
+//    MainWindow* main;
+//    QElapsedTimer* timer;
+//public:
 
-    TimerThread(MainWindow* windowController, QElapsedTimer* timer);
+//    TimerThread(MainWindow* windowController, QElapsedTimer* timer);
 
-    void run() override;
-};
+//    void run() override;
+//};
 
 #endif // MAINWINDOW_H
