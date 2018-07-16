@@ -626,3 +626,8 @@ MainWindow::~MainWindow()
 //        QThread::msleep(1000); //to ensure it doesn't consume to much cpu power
 //    }
 //}
+
+void MainWindow::on_diagLimit_currentIndexChanged(int index)
+{
+    on_searchBut_clicked();
+}
