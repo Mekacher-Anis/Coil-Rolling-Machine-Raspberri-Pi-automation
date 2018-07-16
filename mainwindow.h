@@ -70,6 +70,7 @@ public slots:
 
 private:
     Ui::MainWindow *ui;
+    const QString NA = "NA";
     bool stop = false;
     bool machStopped = true;
     int workerID,techID;

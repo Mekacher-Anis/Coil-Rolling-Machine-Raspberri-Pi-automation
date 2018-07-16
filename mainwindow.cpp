@@ -408,6 +408,14 @@ void MainWindow::machIsDone()
     }
     nbOfPieces += count; //add the new pieces
     ui->nbPie->setText(QString::number(nbOfPieces)); //set the new label
+    //reset the info ui
+    ui->articleInfo1->setText(NA);
+    ui->articleInfo2->setText(NA);
+    ui->articleInfo3->setText(NA);
+    ui->articleInfo4->setText(NA);
+    ui->articleInfo5->setText(NA);
+    ui->articleInfo6->setText(NA);
+    ui->articleInfo7->setText(NA);
 }
 
 //called when the tabs are changed
@@ -452,8 +460,17 @@ void MainWindow::on_startMachBut_clicked()
     QString queryText = "SELECT * FROM 'products' WHERE `Artikel`='";
     queryText += ui->article->text()+"';";
     query.exec(queryText);
-    if(!query.next()) //test if there are any results (worker is part of the database)
+    if(!query.next()) //test if there are any results (article is part of the database)
         test = false;
+    else{ //update the ui if there's any article that matches
+        ui->articleInfo1->setText(query.value(0).toString());
+        ui->articleInfo2->setText(query.value(1).toString());
+        ui->articleInfo3->setText(query.value(2).toString());
+        ui->articleInfo4->setText(query.value(3).toString());
+        ui->articleInfo5->setText(query.value(4).toString());
+        ui->articleInfo6->setText(query.value(5).toString());
+        ui->articleInfo7->setText(query.value(6).toString());
+    }
 
     //take actions accordingly
     if(!test)
