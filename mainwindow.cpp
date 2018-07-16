@@ -310,15 +310,19 @@ void MainWindow::on_searchBut_clicked()
     QString tableName = (ui->diagNat->currentIndex() == 0)  ? "workers" : "technicians"; //database name to access
     //check the chosen limit and get the correct text for the query
     QString limit;
+    int tickCount = 7;
     switch (ui->diagLimit->currentIndex()) {
     case 0 :
         limit = "7";
+        tickCount = 7;
         break;
     case 1 :
         limit = "15";
+        tickCount = 15;
         break;
     case 2 :
         limit = "30";
+        tickCount = 30;
         break;
     }
 
@@ -330,6 +334,7 @@ void MainWindow::on_searchBut_clicked()
 
     quint64 lastDate;
     qreal max = 0; //holds the max value found in the list for setting the y axis range later
+    QString yAxisTitle = "";
     while (query.next()){
 
         quint64 xValue = query.value(4).toDateTime().toMSecsSinceEpoch(); //save abscisse as milliseconds for later use by the created DateTime_XAxis
@@ -339,15 +344,18 @@ void MainWindow::on_searchBut_clicked()
         qreal yValue;
         if(ui->diagNat->currentIndex() != 0){ //if he's a technician
             yValue = query.value(3).toInt();
+            yAxisTitle = "min";
             if (yValue > max)
                 max = yValue + 10;
 
         }else if(ui->diagType->currentIndex() == 0){ //rendement
             yValue = query.value(5).toInt() / query.value(3).toInt();
+            yAxisTitle = "pieces/min";
             if (yValue > max)
                 max = yValue + 1;
 
         }else{
+            yAxisTitle = "%";
             yValue = (query.value(5).toInt() * 100) / (query.value(5).toInt()+query.value(6).toInt()); //efficiency
             max = 100;
         }
@@ -363,6 +371,7 @@ void MainWindow::on_searchBut_clicked()
 
     QDateTimeAxis *axisX = new QDateTimeAxis; //create custom X Axis for date
     axisX->setFormat("dd-MM-yyyy");
+    axisX->setTickCount(tickCount);
     chart->setAxisX(axisX,series);
 
     QValueAxis *axisY = new QValueAxis; //create custom Y Axis for values
