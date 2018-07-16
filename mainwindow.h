@@ -67,6 +67,8 @@ private slots:
 
     void on_diagLimit_currentIndexChanged(int index);
 
+    void on_diagNat_currentIndexChanged(int index);
+
 public slots:
     void machIsDone();
 

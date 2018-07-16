@@ -310,19 +310,15 @@ void MainWindow::on_searchBut_clicked()
     QString tableName = (ui->diagNat->currentIndex() == 0)  ? "workers" : "technicians"; //database name to access
     //check the chosen limit and get the correct text for the query
     QString limit;
-    int tickCount = 7;
     switch (ui->diagLimit->currentIndex()) {
     case 0 :
         limit = "7";
-        tickCount = 7;
         break;
     case 1 :
         limit = "15";
-        tickCount = 15;
         break;
     case 2 :
         limit = "30";
-        tickCount = 30;
         break;
     }
 
@@ -371,11 +367,11 @@ void MainWindow::on_searchBut_clicked()
 
     QDateTimeAxis *axisX = new QDateTimeAxis; //create custom X Axis for date
     axisX->setFormat("dd-MM-yyyy");
-    axisX->setTickCount(tickCount);
     chart->setAxisX(axisX,series);
 
     QValueAxis *axisY = new QValueAxis; //create custom Y Axis for values
     axisY->setRange(0,max);
+    axisY->setTitleText(yAxisTitle);
     chart->setAxisY(axisY,series);
 
     QChartView *chartView = new QChartView(chart); //create the chart widget
@@ -628,6 +624,11 @@ MainWindow::~MainWindow()
 //}
 
 void MainWindow::on_diagLimit_currentIndexChanged(int index)
+{
+    on_searchBut_clicked();
+}
+
+void MainWindow::on_diagNat_currentIndexChanged(int index)
 {
     on_searchBut_clicked();
 }
